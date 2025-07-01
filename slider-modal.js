@@ -1,4 +1,3 @@
-<script>
 document.addEventListener('DOMContentLoaded', function () {
   // ========== SPLIDE SLIDER ==========
   try {
@@ -264,4 +263,3 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 });
-</script>
