@@ -1,3 +1,4 @@
+<script>
 document.addEventListener('DOMContentLoaded', function () {
   // ========== SPLIDE SLIDER ==========
   try {
@@ -36,8 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
               );
               if (window.Webflow && window.Webflow.require) {
                 try {
-                  const ix2 = window.Webflow.require('ix2');
-                  if (ix2) ix2.init();
+                  window.Webflow.require('ix2').init();
                 } catch (e) {
                   console.warn('Error inicializando Webflow ix2:', e);
                 }
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = document.querySelector(`.modal_background[data-modal-id="${modalId}"]`);
     if (!modal) return;
 
+    // Oculta cualquier otro y muestra este
     document.querySelectorAll('.modal_background').forEach(m => m.style.display = 'none');
     document.body.appendChild(modal);
     modal.style.display = 'flex';
@@ -84,15 +85,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 50);
     document.body.style.overflow = 'hidden';
 
+    // Actualiza URL con ?modal=
     const url = new URL(window.location);
     url.searchParams.set('modal', modalId);
-    console.log('URL actualizada:', window.location.href); // Depura aquí
     window.history.replaceState({}, '', url);
 
+    // Re-inicia IX2 para animaciones
     if (window.Webflow && window.Webflow.require) {
       try {
-        const ix2 = window.Webflow.require('ix2');
-        if (ix2) ix2.init();
+        window.Webflow.require('ix2').init();
       } catch (e) {
         console.warn('Error inicializando Webflow ix2:', e);
       }
@@ -107,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = closeBtn.closest('.modal_background');
     if (!modal) return;
 
+    // Limpia contenido y oculta
     const videoContainer = modal.querySelector('.video_modal_hero');
     if (videoContainer) videoContainer.innerHTML = '';
     modal.style.display = 'none';
@@ -114,53 +116,24 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.style.pointerEvents = '';
     document.body.style.overflow = '';
 
+    // Elimina ?modal= de la URL y fuerza limpieza
     const modalId = modal.getAttribute('data-modal-id');
     const params = new URLSearchParams(window.location.search);
     if (params.get('modal') === modalId) {
       params.delete('modal');
-      const url = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash}`;
-      console.log('URL limpiada (clic):', url); // Depura aquí
-      window.history.replaceState({}, '', url);
+      const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash}`;
+      window.history.replaceState({}, '', newUrl);
+      abrirModalDesdeQueryRobusto(0);
     }
 
+    // Re-inicia IX2
     if (window.Webflow && window.Webflow.require) {
       try {
-        const ix2 = window.Webflow.require('ix2');
-        if (ix2) ix2.init();
+        window.Webflow.require('ix2').init();
       } catch (e) {
-        console.warn('Error reiniciando Webflow IX2:', e);
+        console.warn('Error reiniciando Webflow ix2:', e);
       }
     }
-  });
-
-  // ========== OBSERVADOR PARA DETECTAR CIERRE DE MODALES ==========
-  document.querySelectorAll('.modal_background').forEach(modal => {
-    const modalId = modal.getAttribute('data-modal-id');
-    if (!modalId) {
-      console.warn('Modal sin data-modal-id:', modal);
-      return;
-    }
-
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.attributeName === 'style' && modal.style.display === 'none') {
-          console.log(`Modal ${modalId} cerrado (observado)`); // Depura aquí
-          const videoContainer = modal.querySelector('.video_modal_hero');
-          if (videoContainer) videoContainer.innerHTML = '';
-          document.body.style.overflow = '';
-
-          const params = new URLSearchParams(window.location.search);
-          if (params.get('modal') === modalId) {
-            params.delete('modal');
-            const url = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash}`;
-            console.log('URL limpiada (observador):', url); // Depura aquí
-            window.history.replaceState({}, '', url);
-          }
-        }
-      });
-    });
-
-    observer.observe(modal, { attributes: true });
   });
 
   // ========== ABRIR MODAL AUTOMÁTICAMENTE SEGÚN QUERY ==========
@@ -168,22 +141,21 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       const params = new URLSearchParams(window.location.search);
       const modalId = params.get('modal');
-      console.log(`Buscando modal con ID: ${modalId}`); // Depura aquí
+
       if (!modalId) {
-        console.log('No hay parámetro modal en la URL, limpiando modales'); // Depura aquí
+        // Si no hay modal=, oculta todos y restaura overflow
         document.querySelectorAll('.modal_background').forEach(m => {
           m.style.display = 'none';
           m.style.opacity = '';
           m.style.pointerEvents = '';
-          const videoContainer = m.querySelector('.video_modal_hero');
-          if (videoContainer) videoContainer.innerHTML = '';
+          const vc = m.querySelector('.video_modal_hero');
+          if (vc) vc.innerHTML = '';
         });
         document.body.style.overflow = '';
-        return; // Salir si no hay modalId
+        return;
       }
 
       const modal = document.querySelector(`.modal_background[data-modal-id="${modalId}"]`);
-      console.log(`Modal encontrado:`, modal); // Depura aquí
       if (modal) {
         document.querySelectorAll('.modal_background').forEach(m => m.style.display = 'none');
         document.body.appendChild(modal);
@@ -196,71 +168,55 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.style.overflow = 'hidden';
         if (window.Webflow && window.Webflow.require) {
           try {
-            const ix2 = window.Webflow.require('ix2');
-            if (ix2) ix2.init();
-          } catch (e) {
-            console.warn('Error inicializando Webflow ix2:', e);
-          }
+            window.Webflow.require('ix2').init();
+          } catch {}
         }
       } else if (reintentos > 0) {
-        console.log(`Reintentando (${reintentos} restantes)`); // Depura aquí
-        setTimeout(() => abrirModalshawDesdeQueryRobusto(reintentos - 1), 50);
-      } else {
-        console.warn(`Modal ${modalId} no encontrado tras ${reintentos} reintentos`);
+        // Recursión CORRECTA
+        setTimeout(() => abrirModalDesdeQueryRobusto(reintentos - 1), 50);
       }
     } catch (e) {
       console.error('Error en abrirModalDesdeQueryRobusto:', e);
     }
   }
 
+  // Ejecuta al cargar o al navegar con back/forward
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     abrirModalDesdeQueryRobusto();
   } else {
-    document.addEventListener('DOMContentLoaded', () => abrirModalDesdeQueryRobusto());
+    document.addEventListener('DOMContentLoaded', abrirModalDesdeQueryRobusto);
   }
-  window.addEventListener('popstate', () => {
-    console.log('Evento popstate disparado, URL:', window.location.href); // Depura aquí
-    abrirModalDesdeQueryRobusto();
-  });
-  window.addEventListener('load', () => abrirModalDesdeQueryRobusto());
+  window.addEventListener('popstate', abrirModalDesdeQueryRobusto);
 
   // ========== HOVER VIDEO EN SLIDE ==========
   document.addEventListener('mouseenter', (e) => {
     const slide = e.target.closest('.splide__slide');
     if (!slide) return;
-
     const contenedor = slide.querySelector('.video_slider');
     if (!contenedor) return;
 
-    const tipo = contenedor.getAttribute('data-video-type');
-    const rawId = contenedor.getAttribute('data-video-id');
+    const tipo = contenedor.dataset.videoType;
+    const rawId = contenedor.dataset.videoId;
     if (!tipo || !rawId) return;
-
     contenedor.innerHTML = '';
 
+    let iframe;
     if (tipo === 'youtube') {
-      let videoId = rawId;
-      if (rawId.includes('watch?v=')) videoId = rawId.split('watch?v=')[1].split('&')[0];
-      else if (rawId.includes('youtu.be/')) videoId = rawId.split('youtu.be/')[1].split('?')[0];
-      else if (rawId.includes('/embed/')) videoId = rawId.split('/embed/')[1].split('?')[0];
-      const iframe = document.createElement('iframe');
+      let videoId = rawId.split(/(?:watch\?v=|youtu\.be\/|\/embed\/)/)[1].split(/[&?]/)[0];
+      iframe = document.createElement('iframe');
       iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&background=1`;
-      iframe.allow = 'autoplay; fullscreen';
-      iframe.allowFullscreen = true;
-      iframe.loading = 'lazy';
-      Object.assign(iframe.style, {
-        width: '100%', height: '100%', position: 'absolute', top: '0', left: '0', border: 'none', backgroundColor: '#000'
-      });
-      contenedor.appendChild(iframe);
     } else if (tipo === 'vimeo') {
       const videoId = rawId.split('/').pop().split('?')[0];
-      const iframe = document.createElement('iframe');
+      iframe = document.createElement('iframe');
       iframe.src = `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&background=1`;
+    }
+    if (iframe) {
       iframe.allow = 'autoplay; fullscreen';
       iframe.allowFullscreen = true;
       iframe.loading = 'lazy';
       Object.assign(iframe.style, {
-        width: '100%', height: '100%', position: 'absolute', top: '0', left: '0', border: 'none', backgroundColor: '#000'
+        width: '100%', height: '100%', position: 'absolute',
+        top: '0', left: '0', border: 'none', backgroundColor: '#000'
       });
       contenedor.appendChild(iframe);
     }
@@ -273,50 +229,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (contenedor) contenedor.innerHTML = '';
   }, true);
 
-  // ========== FUNCIÓN REUTILIZABLE PARA INSERTAR CONTENIDO ==========
+  // ========== FUNCIÓN PARA INSERTAR CONTENIDO EN MODAL ==========
   function insertarContenidoEnModal(modal) {
-    const videoContainer = modal.querySelector('.video_modal_hero');
-    if (!videoContainer) return;
-    const type = videoContainer.getAttribute('data-video-type');
-    const rawId = videoContainer.getAttribute('data-video-id');
-    if (!type || !rawId) return;
+    const vc = modal.querySelector('.video_modal_hero');
+    if (!vc) return;
+    const tipo = vc.dataset.videoType;
+    const rawId = vc.dataset.videoId;
+    if (!tipo || !rawId) return;
 
-    videoContainer.innerHTML = '';
-
-    if (type === 'youtube') {
-      let videoId = rawId;
-      if (rawId.includes('watch?v=')) videoId = rawId.split('watch?v=')[1].split('&')[0];
-      else if (rawId.includes('youtu.be/')) videoId = rawId.split('youtu.be/')[1].split('?')[0];
-      else if (rawId.includes('/embed/')) videoId = rawId.split('/embed/')[1].split('?')[0];
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
-      iframe.allow = 'autoplay; fullscreen';
-      iframe.allowFullscreen = true;
-      iframe.loading = 'lazy';
-      Object.assign(iframe.style, {
-        width: '100%', height: '100%', position: 'absolute', top: '0', left: '0', border: 'none', backgroundColor: '#000'
+    vc.innerHTML = '';
+    let el;
+    if (tipo === 'youtube' || tipo === 'vimeo') {
+      const base = tipo === 'youtube'
+        ? 'https://www.youtube.com/embed/'
+        : 'https://player.vimeo.com/video/';
+      const videoId = tipo === 'youtube'
+        ? rawId.split(/(?:watch\?v=|youtu\.be\/|\/embed\/)/)[1].split(/[&?]/)[0]
+        : rawId.split('/').pop().split('?')[0];
+      el = document.createElement('iframe');
+      el.src = `${base}${videoId}?autoplay=1&mute=1`;
+    } else if (tipo === 'image') {
+      el = document.createElement('img');
+      el.src = rawId;
+      el.alt = 'Aperçu';
+      el.loading = 'lazy';
+      el.style.objectFit = 'cover';
+    }
+    if (el) {
+      Object.assign(el.style, {
+        width: '100%', height: '100%', position: 'absolute',
+        top: '0', left: '0', border: 'none', backgroundColor: '#000'
       });
-      videoContainer.appendChild(iframe);
-    } else if (type === 'vimeo') {
-      const videoId = rawId.split('/').pop().split('?')[0];
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&autopause=1`;
-      iframe.allow = 'autoplay; fullscreen';
-      iframe.allowFullscreen = true;
-      iframe.loading = 'lazy';
-      Object.assign(iframe.style, {
-        width: '100%', height: '100%', position: 'absolute', top: '0', left: '0', border: 'none', backgroundColor: '#000'
-      });
-      videoContainer.appendChild(iframe);
-    } else if (type === 'image') {
-      const img = document.createElement('img');
-      img.src = rawId;
-      img.alt = 'Aperçu';
-      img.loading = 'lazy';
-      Object.assign(img.style, {
-        width: '100%', height: '100%', position: 'absolute', top: '0', left: '0', objectFit: 'cover'
-      });
-      videoContainer.appendChild(img);
+      vc.appendChild(el);
     }
   }
 });
+</script>
